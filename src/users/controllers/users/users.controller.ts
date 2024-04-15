@@ -1,20 +1,26 @@
-import { Body, ConsoleLogger, Controller, Get, Param, Post, Query, Req, Res, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Body, ConsoleLogger, Controller, Get, HttpException, HttpStatus, Param, ParseBoolPipe, ParseIntPipe, Post, Query, Req, Res, UsePipes, ValidationPipe } from '@nestjs/common';
 import { RESPONSE_PASSTHROUGH_METADATA } from '@nestjs/common/constants';
 import e, { Request, Response } from 'express';
 import { identity } from 'rxjs';
 import { CreateUserDto } from 'src/users/dtos/createUser.dto';
+import { UsersService } from 'src/users/services/users/users.service';
 
 // this is the controller for the router '/users'
 @Controller('users') //localhost:3001/users
 export class UsersController {
+
+    constructor(private userService: UsersService){
+
+    }
+
     // if we add a router inside the controller, it will be appended to the controller's path
     // for example: @Get('fetch') = '/users/fetch'
     // but because it is empty, we will get '/users'
 
-    /* @Get()
+    @Get()
     getUsers() {
-        return {username: 'John Doe', email: 'foo@mail.com'};
-    } */
+        return this.userService.fetchUsers();
+    }
 
     @Get('getposts')
     getUsersPosts() {
@@ -41,10 +47,18 @@ export class UsersController {
         }];
     }; 
 
-    @Get(':id')
-    getUserById(@Param('id') id: string){
+    /* @Get(':id')
+    getUserById(@Param('id', ParseIntPipe) id: number){
         console.log(id);
         return {id};
+    }; */
+
+    @Get(':id')
+    getUserById(@Param('id', ParseIntPipe) id: number){
+        console.log(id)
+        const userId = this.userService.fetchUserById(id);
+        if (!userId) throw new HttpException('User not found', HttpStatus.BAD_REQUEST);
+        return userId;
     };
 
     @Get(':id/:postId')
@@ -54,11 +68,11 @@ export class UsersController {
     };
 
     // Query parameters
-    @Get()
-    getUsers(@Query('sortBy') sortBy: string){
-        console.log(sortBy);
+    /* @Get()
+    getUsers(@Query('sortDesc', ParseBoolPipe) sortDesc: boolean, ){
+        console.log(sortDesc );
         return [{username: 'John Doe', email: 'foo@mail.com'}];
-    }
+    } */
 
 
     /* @Post('create')
@@ -75,6 +89,6 @@ export class UsersController {
     createUser(@Body() userPayload: CreateUserDto){
         // now we have type safety
         console.log(userPayload);
-        return {status: 'OK'};
+        return this.userService.createUser(userPayload);
     }
 };
